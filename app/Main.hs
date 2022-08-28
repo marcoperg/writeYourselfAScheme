@@ -16,7 +16,7 @@ data LispVal = Atom String
              | String String
              | Bool Bool
              | Character Char
-             deriving (Show)
+             deriving (Show, Read)
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -84,24 +84,34 @@ parseInteger = try parseOctNumber
 
 parseComplex :: Parser LispVal
 parseComplex = do
-    real <- (parseInteger <|> parseFloat)
+    real <- (try parseFloat <|> parseInteger)
     _ <- optional (char ' ')
     _ <- char '+'
     _ <- optional (char ' ')
-    complex <- (parseInteger <|> parseFloat)
+    complex <- (try parseFloat <|> parseInteger)
     _ <- char 'i'
-    return $ Complex real complex
+    return $ Complex (convert real) (convert complex)
+        where convert (Float x) = x :: Float
+              convert (Integer x) = fromInteger x :: Float
+
+parseRational :: Parser LispVal
+parseRational = do
+    num <- many1 digit
+    _ <- optional (char ' ')
+    _ <- char '/'
+    _ <- optional (char ' ')
+    den <- many1 digit
+    return $ Rational (read num) (read den)
 
 parseNumber :: Parser LispVal
 parseNumber = try parseComplex
-                -- <|> try parseRational
+                <|> try parseRational
                 <|> try parseInteger
 
 parseChar :: Parser LispVal
 parseChar = string "#\\" >> ((string "space" >> (return $ Character ' '))
                             <|> (string "newline" >> (return $ Character '\n'))
                             <|> (anyChar >>= (\c -> return $ Character c)))
-
 
 parseFloat :: Parser LispVal
 parseFloat = do
@@ -113,8 +123,8 @@ parseFloat = do
 parseExpr :: Parser LispVal
 parseExpr = try parseChar
             <|> try parseString
-            <|> try parseFloat
             <|> try parseNumber
+            <|> try parseFloat
             <|> parseAtom
 
 -- bind op (>>) ;; a >> b = a >>= (\_ -> b) where
