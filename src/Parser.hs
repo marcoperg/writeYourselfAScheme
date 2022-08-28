@@ -1,4 +1,4 @@
-module Parser (parseExpr) where
+module Parser where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad
@@ -15,7 +15,6 @@ data LispVal = Atom String
              | String String
              | Bool Bool
              | Character Char
-             deriving (Show, Read)
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
@@ -85,9 +84,9 @@ parseComplex :: Parser LispVal
 parseComplex = do
     real <- (try parseFloat <|> parseInteger)
     _ <- optional (char ' ') >> char '+' >> optional (char ' ')
-    complex <- (try parseFloat <|> parseInteger)
+    img <- (try parseFloat <|> parseInteger)
     _ <- char 'i'
-    return $ Complex (convert real) (convert complex)
+    return $ Complex (convert real) (convert img)
         where convert (Float x) = x :: Float
               convert (Integer x) = fromInteger x :: Float
 
