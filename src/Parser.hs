@@ -14,7 +14,24 @@ data LispVal = Atom String
              | Float Float
              | String String
              | Bool Bool
-             | Character Char
+			 | Character Char
+
+showVal :: LispVal -> String
+showVal (String contents) = "\"" ++ contents ++ "\""
+showVal (Atom name) = name
+showVal (Integer number) = show number
+showVal (Float number) = show number
+showVal (Complex real img) = (show real) ++ "+" ++ (show img) ++ "i"
+showVal (Rational num den) = (show num) ++ "/" ++ (show den)
+showVal (Bool True) = "#t"
+showVal (Bool False) = "#f"
+showVal (List contents) = "(" ++ unwordsList contents ++ ")"
+showVal (DottedList head tail) = "(" ++ unwordsList head ++ "." ++ showVal tail ++ ")"
+
+unwordsList :: [LispVal] -> String
+unwordsList = unwords . map showVal
+
+instance Show LispVal where show = showVal
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"
