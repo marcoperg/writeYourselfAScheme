@@ -31,6 +31,9 @@ evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>
 evalAndPrint :: Env -> String -> IO ()
 evalAndPrint env expr = evalString env expr >>= putStrLn
 
+runOne :: String -> IO ()
+runOne expr = primitiveBindings >>= flip evalAndPrint expr
+
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do
     result <- prompt
@@ -39,12 +42,12 @@ until_ pred prompt action = do
         else action result >> until_ pred prompt action
 
 runRepl :: IO ()
-runRepl = until_ (== "quit") (readPrompt "Lisp>>> ") evalAndPrint
+runRepl = primitiveBindings >>= until_ (== "quit") (readPrompt "Lisp>>> ") . evalAndPrint
 
 main :: IO()
 main = do
     args <- getArgs
     case length args of
         0 -> runRepl
-        1 -> evalAndPrint $ args !!0
+        1 -> runOne $ args !! 0
         _ -> putStrLn "Program takes only 0 or 1 argument"

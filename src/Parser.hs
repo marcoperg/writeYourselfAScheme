@@ -1,9 +1,13 @@
 module Parser where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
+import Control.Monad.Except
 import Control.Monad
 import Numeric (readOct, readHex, readInt, readFloat)
 import Data.Char (digitToInt)
+import Data.IORef
+
+type Env = IORef [(String, IORef LispVal)]
 
 data LispVal = Atom String
              | List [LispVal]
@@ -15,6 +19,18 @@ data LispVal = Atom String
              | String String
              | Bool Bool
              | Character Char
+             | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
+             | Func { params :: [String], vararg :: (Maybe String),
+                      body :: [LispVal], closure :: Env }
+
+data LispError = NumArgs Integer [LispVal]
+               | TypeMismatch String LispVal
+               | Parser ParseError
+               | BadSpecialForm String LispVal
+               | NotFunction String String
+               | UnboundVar String String
+               | Default String
+type ThrowsError = Either LispError
 
 showVal :: LispVal -> String
 showVal (String contents) = "\"" ++ contents ++ "\""
@@ -27,6 +43,12 @@ showVal (Bool True) = "#t"
 showVal (Bool False) = "#f"
 showVal (List contents) = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ "." ++ showVal tail ++ ")"
+showVal (PrimitiveFunc _) = "<primitive>"
+showVal (Func {params = args, vararg = varargs, body = body, closure = env}) =
+    "(lambda (" ++ unwords (map show args) ++
+        (case varargs of
+            Nothing -> ""
+            Just arg -> " . " ++ arg) ++ ") ...)"
 
 instance Show LispVal where show = showVal
 

@@ -4,12 +4,12 @@ import Prelude
 import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad.Except
+import Control.Monad
 import System.IO
 import Data.IORef
 
 import Parser
-
-type Env = IORef [(String, IORef LispVa)]
+import ErrorChecking
 
 nullEnv :: IO Env
 nullEnv = newIORef []
@@ -27,10 +27,10 @@ isBound :: Env -> String -> IO Bool
 isBound envRef var = readIORef envRef >>= return . maybe False (const True) . lookup var
 
 getVar :: Env -> String -> IOThrowsError LispVal
-getVar env var = do env <- liftIO $ readIORef envRef
-                    maybe (throwError $ UnboundVar "Getting an unbound variable" var)
-                          (liftIO . readIORef)
-                          (lookup var env)
+getVar envRef var = do env <- liftIO $ readIORef envRef
+                       maybe (throwError $ UnboundVar "Getting an unbound variable" var)
+                             (liftIO . readIORef)
+                             (lookup var env)
 
 setVar :: Env -> String -> LispVal -> IOThrowsError LispVal
 setVar envRef var value = do env <- liftIO $ readIORef envRef
@@ -55,3 +55,8 @@ bindVars envRef bindings = readIORef envRef >>= extendEnv bindings >>= newIORef
     where extendEnv bindings env = liftM (++ env) (mapM addBinding bindings)
           addBinding (var, value) = do ref <- newIORef value
                                        return (var, ref)
+
+makeFunc :: Maybe String -> Env -> [LispVal] -> [LispVal] -> IOThrowsError LispVal
+makeFunc varargs env params body = return $ Func (map showVal params) varargs body env
+makeNormalFunc = makeFunc Nothing
+makeVarArgs = makeFunc . Just . showVal

@@ -27,6 +27,7 @@ library
   exposed-modules:
       ErrorChecking
       Evaluator
+      IOEnv
       Parser
   other-modules:
       Paths_scheme
