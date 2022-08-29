@@ -5,10 +5,12 @@ import Text.ParserCombinators.Parsec hiding (spaces)
 import System.Environment
 import Control.Monad.Except
 import System.IO
+import Data.IORef
 
 import Parser
 import ErrorChecking
 import Evaluator
+import IOEnv
 
 -- bind op (>>) ;; a >> b = a >>= (\_ -> b) where
     -- (>>=) :: m a -> (a -> m b) -> m b
@@ -23,11 +25,11 @@ flushStr str = putStr str >> hFlush stdout
 readPrompt :: String -> IO String
 readPrompt prompt = flushStr prompt >> getLine
 
-evalString :: String -> IO String
-evalString expr = return $ extractValue $ trapError (liftM show $ readExpr expr >>= eval)
+evalString :: Env -> String -> IO String
+evalString env expr = runIOThrows $ liftM show $ (liftThrows $ readExpr expr) >>= eval env
 
-evalAndPrint :: String -> IO ()
-evalAndPrint expr = evalString expr >>= putStrLn
+evalAndPrint :: Env -> String -> IO ()
+evalAndPrint env expr = evalString env expr >>= putStrLn
 
 until_ :: Monad m => (a -> Bool) -> m a -> (a -> m ()) -> m ()
 until_ pred prompt action = do

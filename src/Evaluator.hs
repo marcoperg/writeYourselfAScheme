@@ -6,23 +6,26 @@ import Control.Monad.Except
 import Data.List
 
 import Parser
+import IOEnv
 import ErrorChecking
 
-eval :: LispVal -> ThrowsError LispVal
-eval val@(String _) = return val
-eval val@(Integer _) = return val
-eval val@(Float _) = return val
-eval val@(Rational _ _) = return val
-eval val@(Complex _ _) = return val
-eval val@(Bool _) = return val
-eval (List [Atom "quote", val]) = return val
-eval (List [Atom "if", pred, conseq, alt]) =
+eval :: Env -> LispVal -> IOThrowsError LispVal
+eval env val@(String _) = return val
+eval env val@(Integer _) = return val
+eval env val@(Float _) = return val
+eval env val@(Rational _ _) = return val
+eval env val@(Complex _ _) = return val
+eval env val@(Bool _) = return val
+eval env (List [Atom "quote", val]) = return val
+eval env (List [Atom "if", pred, conseq, alt]) =
     do result <- eval pred
        case result of
         Bool False -> eval alt
         _          -> eval conseq
-eval (List (Atom func : args)) = mapM eval args >>= apply func -- apply func $ map eval args
-eval badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
+eval env (List [Atom "set!", val, form]) = eval env form >>= setVar env var
+eval env (List [Atom "define!", val, form]) = eval env form >>= defineVar env var
+eval env (List (Atom func : args)) = mapM eval args >>= apply func -- apply func $ map eval args
+eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: String -> [LispVal] -> ThrowsError LispVal
 apply func args = maybe (throwError $ NotFunction "Unrecognized primitive function args" func)
