@@ -14,7 +14,7 @@ data LispVal = Atom String
              | Float Float
              | String String
              | Bool Bool
-			 | Character Char
+             | Character Char
 
 showVal :: LispVal -> String
 showVal (String contents) = "\"" ++ contents ++ "\""

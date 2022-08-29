@@ -33,6 +33,7 @@ ghc-options:
 #- -Wpartial-fields
 #- -Wredundant-constraints
 - -XFlexibleContexts
+- -XExistentialQuantification
 
 library:
   source-dirs: src
