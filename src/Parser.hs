@@ -28,10 +28,11 @@ showVal (Bool False) = "#f"
 showVal (List contents) = "(" ++ unwordsList contents ++ ")"
 showVal (DottedList head tail) = "(" ++ unwordsList head ++ "." ++ showVal tail ++ ")"
 
+instance Show LispVal where show = showVal
+
 unwordsList :: [LispVal] -> String
 unwordsList = unwords . map showVal
 
-instance Show LispVal where show = showVal
 
 symbol :: Parser Char
 symbol = oneOf "!#$%&|*+-/:<=>?@^_~"

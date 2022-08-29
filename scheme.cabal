@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       ErrorChecking
+      Evaluator
       Parser
   other-modules:
       Paths_scheme
