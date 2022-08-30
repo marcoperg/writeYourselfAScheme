@@ -2,12 +2,15 @@ module Parser where
 
 import Text.ParserCombinators.Parsec hiding (spaces)
 import Control.Monad.Except
+import System.IO
+import System.Environment
 import Control.Monad
 import Numeric (readOct, readHex, readInt, readFloat)
 import Data.Char (digitToInt)
 import Data.IORef
 
 type Env = IORef [(String, IORef LispVal)]
+type IOThrowsError = ExceptT LispError IO
 
 data LispVal = Atom String
              | List [LispVal]
@@ -22,6 +25,8 @@ data LispVal = Atom String
              | PrimitiveFunc ([LispVal] -> ThrowsError LispVal)
              | Func { params :: [String], vararg :: (Maybe String),
                       body :: [LispVal], closure :: Env }
+             | IOFunc ([LispVal] -> IOThrowsError LispVal)
+             | Port Handle
 
 data LispError = NumArgs Integer [LispVal]
                | TypeMismatch String LispVal
@@ -49,6 +54,8 @@ showVal (Func {params = args, vararg = varargs, body = body, closure = env}) =
         (case varargs of
             Nothing -> ""
             Just arg -> " . " ++ arg) ++ ") ...)"
+showVal (Port _) = "<IO port>"
+showVal (IOFunc _) = "<IO primitive>"
 
 instance Show LispVal where show = showVal
 
@@ -181,3 +188,13 @@ parseExpr = try parseChar
                     x <- try parseList <|> parseDottedList
                     char ')'
                     return x)
+
+-- bind op (>>) ;; a >> b = a >>= (\_ -> b) where
+    -- (>>=) :: m a -> (a -> m b) -> m b
+readOrThrow :: Parser a -> String -> ThrowsError a
+readOrThrow parser input = case (parse parser "lisp" input) of
+    Left err -> throwError $ Parser err
+    Right val -> return val
+
+readExpr = readOrThrow parseExpr
+readExprList = readOrThrow (endBy parseExpr spaces)
