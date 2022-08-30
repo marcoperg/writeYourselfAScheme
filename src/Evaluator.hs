@@ -18,7 +18,6 @@ eval env val@(Float _) = return val
 eval env val@(Rational _ _) = return val
 eval env val@(Complex _ _) = return val
 eval env val@(Bool _) = return val
-eval env (Atom id) = getVar env id
 eval env (List [Atom "quote", val]) = return val
 eval env (List [Atom "if", pred, conseq, alt]) =
     do result <- eval env pred
@@ -42,6 +41,7 @@ eval env (List (function : args)) = do
     argVals <- mapM (eval env) args
     apply func argVals
 -- eval env (List (Atom func : args)) = mapM (eval env) args >>= liftThrows . apply func
+eval env (Atom id) = getVar env id
 eval env badForm = throwError $ BadSpecialForm "Unrecognized special form" badForm
 
 apply :: LispVal -> [LispVal] -> IOThrowsError LispVal
